@@ -1,0 +1,54 @@
+import numpy as np
+from qiskit import QuantumCircuit, Aer, execute
+from qiskit.visualization import plot_histogram
+
+def mcz(qc, control_qubits, target_qubit):
+    qc.h(target_qubit)
+    qc.mct(control_qubits, target_qubit)
+    qc.h(target_qubit)
+
+def oracle(qc, secret_code):
+    n = len(secret_code)
+
+    for i, bit in enumerate(secret_code):
+        if bit == '0':
+            qc.x(i)
+
+    mcz(qc, list(range(n - 1)), n - 1)
+
+    for i, bit in enumerate(secret_code):
+        if bit == '0':
+            qc.x(i)
+
+def grover_diffusion_operator(qc, n):
+    qc.h(range(n))
+    oracle(qc, '0' * n)
+    qc.h(range(n))
+
+def quantum_binary_mastermind(n, secret_code):
+    qc = QuantumCircuit(n, n)
+    k = int(np.floor(np.pi / 4 * np.sqrt(2 ** n)))
+
+    qc.h(range(n))
+
+    for _ in range(k):
+        oracle(qc, secret_code)
+        grover_diffusion_operator(qc, n)
+
+    qc.measure(range(n), range(n))
+
+    qasm_simulator = Aer.get_backend('qasm_simulator')
+    result = execute(qc, qasm_simulator, shots=1000).result()
+    counts = result.get_counts(qc)
+    guess_code = max(counts, key=counts.get)
+
+    return guess_code, counts
+
+# Example usage:
+n = 4
+secret_code = '0101'
+secret_code_reversed = secret_code[::-1]  # Reverse the secret code
+guess_code, counts = quantum_binary_mastermind(n, secret_code_reversed)
+print(f"Secret code: {secret_code}")
+print(f"Guessed code: {guess_code}")  # Reverse the guessed code back
+plot_histogram(counts)
