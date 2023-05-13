@@ -7,6 +7,7 @@ def mcz(qc, control_qubits, target_qubit):
     qc.mct(control_qubits, target_qubit)
     qc.h(target_qubit)
 
+# Marks the correct solution
 def oracle(qc, secret_code):
     n = len(secret_code)
 
@@ -20,22 +21,25 @@ def oracle(qc, secret_code):
         if bit == '0':
             qc.x(i)
 
+
+# Grover's diffusion operator for amplitude amplification
 def grover_diffusion_operator(qc, n):
-    qc.h(range(n))
-    oracle(qc, '0' * n)
-    qc.h(range(n))
+    qc.h(range(n)) # Apply Hadamard gates to all qubits
+    oracle(qc, '0' * n) # Apply the oracle with all zeros
+    qc.h(range(n)) # Apply Hadamard gates to all qubits again
 
 def quantum_binary_mastermind(n, secret_code):
     qc = QuantumCircuit(n, n)
     k = int(np.floor(np.pi / 4 * np.sqrt(2 ** n)))
 
-    qc.h(range(n))
+    qc.h(range(n)) # Apply Hadamard gates to all qubits
 
+    # Apply the oracle and diffusion k times
     for _ in range(k):
         oracle(qc, secret_code)
         grover_diffusion_operator(qc, n)
 
-    qc.measure(range(n), range(n))
+    qc.measure(range(n), range(n)) # Measure all qubits
 
     qasm_simulator = Aer.get_backend('qasm_simulator')
     result = execute(qc, qasm_simulator, shots=1000).result()
